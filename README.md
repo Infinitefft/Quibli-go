@@ -16,3 +16,18 @@
   - typescript
   - axios
   - shadcn(pnpm i shadcn@latest, npx shadcn@latest init, npx shadcn@latest add button)
+
+
+  dependencies:
+    + @tailwindcss/vite 4.2.1
+    + axios 1.13.5
+    + react 19.2.4
+    + react-dom 19.2.4
+    + react-router-dom 7.13.1
+    + shadcn 3.8.5
+    + tailwindcss 4.2.1
+    + zustand 5.0.11
+
+- 后端：
+  - Go
+  
