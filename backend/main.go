@@ -2,44 +2,63 @@ package main
 
 import (
 	"context"
-	"database/sql"
-	"fmt"
 	"log"
+
+	"backend/internal/config"
+	"backend/internal/ent"
+	"backend/internal/handler"
+	"backend/internal/router"
+	"backend/internal/service"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/cloudwego/hertz/pkg/common/utils"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
-	_ "github.com/lib/pq" // PostgreSQL driver
+	_ "github.com/lib/pq"
 )
 
 func main() {
-	// 测试数据库连接
-	db, err := sql.Open("postgres", "host=localhost port=5433 user=postgres password=123456 dbname=postgres sslmode=disable")
+	if err := config.Load(); err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
+
+	dbDSN := config.GetDBDSN()
+	client, err := ent.Open("postgres", dbDSN)
 	if err != nil {
-		log.Fatal("failed opening connection to postgres: ", err)
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	defer db.Close()
+	defer client.Close()
 
-	// 测试连接
-	if err := db.Ping(); err != nil {
-		log.Fatal("failed connecting to postgres: ", err)
+	if err := client.Schema.Create(context.Background()); err != nil {
+		log.Fatalf("Failed to create schema: %v", err)
 	}
 
-	fmt.Println("Database connected successfully!")
+	authService := service.NewAuthService(client)
+	authHandler := handler.NewAuthHandler(authService)
+	router := router.NewRouter(authHandler)
 
-	h := server.Default()
+	h := server.Default(
+		server.WithHostPorts(config.AppConfig.ServerPort),
+		server.WithMaxRequestBodySize(10<<20),
+	)
+
+	h.Use(func(ctx context.Context, c *app.RequestContext) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		c.Header("Access-Control-Allow-Credentials", "true")
+		if string(c.Method()) == "OPTIONS" {
+			c.SetStatusCode(204)
+			c.Abort()
+			return
+		}
+		c.Next(ctx)
+	})
+
+	router.Register(h)
 
 	h.GET("/ping", func(ctx context.Context, c *app.RequestContext) {
 		c.JSON(consts.StatusOK, utils.H{"message": "pong"})
-	})
-
-	h.GET("/db-test", func(ctx context.Context, c *app.RequestContext) {
-		if err := db.Ping(); err != nil {
-			c.JSON(consts.StatusInternalServerError, utils.H{"error": "database connection failed"})
-			return
-		}
-		c.JSON(consts.StatusOK, utils.H{"message": "database connected successfully"})
 	})
 
 	h.Spin()

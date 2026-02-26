@@ -5,7 +5,10 @@ go 1.22.3
 require (
 	entgo.io/ent v0.13.1
 	github.com/cloudwego/hertz v0.10.4
+	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
+	golang.org/x/crypto v0.22.0
 )
 
 require (
