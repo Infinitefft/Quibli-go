@@ -29,5 +29,12 @@
     + zustand 5.0.11
 
 - 后端：
-  - Go
+  - Go (go 1.22.3)
+  - Hertz
+  - Ent
+
+
+
+- 数据库：
+  - host=localhost port=5433 user=postgres password=你的密码 dbname=postgres sslmode=disable"
   
